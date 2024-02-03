@@ -9,5 +9,5 @@ npm install
 ```
 3. Run
 ```bash
-npm start
+node .
 ```
