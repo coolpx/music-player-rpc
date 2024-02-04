@@ -62,9 +62,7 @@ app.get('/list', async (request, response) => {
 
         // detect if music file
         const fileType = await FileType.fromFile(file);
-        if (!fileType || !fileType.mime.startsWith('audio')) {
-            continue;
-        }
+        if (!fileType || !fileType.mime.startsWith('audio/') || file.endsWith('.ini')) continue;
 
         // add music file object
         musicFiles.push(await createMusicFileObject(file));
