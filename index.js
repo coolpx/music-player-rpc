@@ -19,6 +19,11 @@ function formatSeconds(seconds) {
     return `${minutes}:${sec < 10 ? '0' : ''}${sec}`;
 }
 
+// function to return the user's home directory
+function getUserHome() {
+    return process.env.HOME || process.env.USERPROFILE;
+}
+
 // function to convert a file path into a music file object
 async function createMusicFileObject(path) {
     // read file metadata
@@ -42,7 +47,7 @@ async function createMusicFileObject(path) {
 // list music files
 app.get('/list', async (request, response) => {
     // read music files
-    const home = process.env.HOME || process.env.USERPROFILE;
+    const home = getUserHome();
     const path = `${home}/Music`;
     const files = fs.readdirSync(path, { recursive: true });
 
@@ -72,7 +77,7 @@ app.get('/list', async (request, response) => {
 // get icon
 app.get('/icon/:artist/:album', async (request, response) => {
     // read music files
-    const home = process.env.HOME;
+    const home = getUserHome();
     let path = `${home}/Music/${request.params.artist}/${request.params.album}/cover.jpg`;
 
     response.sendFile(path);
@@ -81,7 +86,7 @@ app.get('/icon/:artist/:album', async (request, response) => {
 // get audio
 app.get('/audio/:artist/:album/:title', async (request, response) => {
     // read music files
-    const home = process.env.HOME;
+    const home = getUserHome();
     let path = `${home}/Music/${request.params.artist}/${request.params.album}/`;
     const files = fs.readdirSync(path, { recursive: true });
 
