@@ -68,6 +68,9 @@ app.get('/list', async (request, response) => {
         musicFiles.push(await createMusicFileObject(file));
     }
 
+    // set cache-control header
+    response.set('Cache-Control', 'max-age=60, stale-while-revalidate=120, private');
+
     // send music files
     response.json(musicFiles);
 });
@@ -78,6 +81,10 @@ app.get('/icon/:artist/:album', async (request, response) => {
     const home = getUserHome();
     let path = `${home}/Music/${request.params.artist}/${request.params.album}/cover.jpg`;
 
+    // set cache-control header
+    response.set('Cache-Control', 'max-age=2592000, stale-while-revalidate=2678000, private');
+
+    // send icon
     response.sendFile(path);
 });
 
@@ -96,6 +103,10 @@ app.get('/audio/:artist/:album/:title', async (request, response) => {
         }
     }
 
+    // set cache-control header
+    response.set('Cache-Control', 'max-age=2592000, stale-while-revalidate=2678000, private');
+
+    // send audio
     response.sendFile(`${path}/${file}`);
 });
 
