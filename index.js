@@ -81,6 +81,9 @@ app.get('/icon/:artist/:album', async (request, response) => {
     const home = getUserHome();
     let path = `${home}/Music/${request.params.artist}/${request.params.album}/cover.jpg`;
 
+    // check if file exists
+    if (!fs.existsSync(path)) return response.status(404).send('Not found');
+
     // set cache-control header
     response.set('Cache-Control', 'max-age=2592000, stale-while-revalidate=2678000, private');
 
