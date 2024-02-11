@@ -12,43 +12,83 @@ app.use(cors());
 const port = 13525;
 const url = `http://localhost:${port}`;
 
-// function to format seconds to mm:ss
+// format seconds to mm:ss
 function formatSeconds(seconds) {
     const minutes = Math.floor(seconds / 60);
     const sec = Math.floor(seconds % 60);
     return `${minutes}:${sec < 10 ? '0' : ''}${sec}`;
 }
 
-// function to return the user's home directory
+// return the user's home directory
 function getUserHome() {
     return process.env.HOME || process.env.USERPROFILE;
 }
 
-// function to convert a file path into a music file object
+// return the music directory
+function getMusicPath() {
+    return [getUserHome(), 'Music'].join('/');
+}
+
+// get the destination path for an audio file's extracted cover
+function getEmbeddedCoverPath(audioPath) {
+    return audioPath.split('.').slice(0, -1).join('.') + '.jpg';
+}
+
+// extract cover from audio file
+async function extractCover(audioPath) {
+    // read metadata
+    const metadata = await mm.parseFile(audioPath);
+
+    // check for embedded cover
+    if (metadata.common.picture && metadata.common.picture.length > 0) {
+        const picture = metadata.common.picture[0];
+        const coverPath = getEmbeddedCoverPath(audioPath);
+        fs.writeFileSync(coverPath, picture.data);
+
+        return coverPath;
+    }
+}
+
+// get the cover path of an audio file
+async function getCoverPath(audioPath) {
+    // check for embedded cover
+    let path = await extractCover(audioPath);
+
+    // check for cover.jpg
+    if (!path) {
+        const coverPath = getAlbumCoverPath(audioPath);
+        if (fs.existsSync(coverPath)) {
+            path = coverPath;
+        }
+    }
+
+    // return path
+    return path;
+}
+
+// convert a file path into a music file object
 async function createMusicFileObject(path) {
     // read file metadata
     let metadata = await mm.parseFile(path);
 
-    // create id
-    // const id = `${metadata.common.artist}_${metadata.common.album}_${metadata.common.track.no}`
+    // get relative path
+    path = path.substring(getMusicPath().length + 1);
 
     // create music file object
     return {
-        // id: id,
-        icon: `${url}/icon/${metadata.common.artist}/${metadata.common.album}`,
+        icon: `${url}/icon/${path}`,
         title: metadata.common.title,
         artist: metadata.common.artist,
         album: metadata.common.album,
         duration: formatSeconds(metadata.format.duration),
-        audioUrl: `${url}/audio/${metadata.common.artist}/${metadata.common.album}/${metadata.common.title}`
+        audioUrl: `${url}/audio/${path}`
     }
 }
 
 // list music files
 app.get('/list', async (request, response) => {
     // read music files
-    const home = getUserHome();
-    const path = `${home}/Music`;
+    const path = getMusicPath();
     const files = fs.readdirSync(path, { recursive: true });
 
     // create music file objects
@@ -76,13 +116,13 @@ app.get('/list', async (request, response) => {
 });
 
 // get icon
-app.get('/icon/:artist/:album', async (request, response) => {
-    // read music files
-    const home = getUserHome();
-    let path = `${home}/Music/${request.params.artist}/${request.params.album}/cover.jpg`;
+app.get('/icon/*', async (request, response) => {
+    // get path
+    let musicFilePath = [getMusicPath(), request.params[0]].join('/');
 
-    // check if file exists
-    if (!fs.existsSync(path)) return response.status(404).send('Not found');
+    // get path
+    const path = await getCoverPath(musicFilePath);
+    console.log(path || 'no cover found');
 
     // set cache-control header
     response.set('Cache-Control', 'max-age=2592000, stale-while-revalidate=2678000, private');
@@ -92,25 +132,15 @@ app.get('/icon/:artist/:album', async (request, response) => {
 });
 
 // get audio
-app.get('/audio/:artist/:album/:title', async (request, response) => {
+app.get('/audio/*', async (request, response) => {
     // read music files
-    const home = getUserHome();
-    let path = `${home}/Music/${request.params.artist}/${request.params.album}/`;
-    const files = fs.readdirSync(path, { recursive: true });
-
-    let file = '';
-    for (let f of files) {
-        if (f.includes(request.params.title)) {
-            file = f;
-            break;
-        }
-    }
+    const path = [getMusicPath(), request.params[0]].join('/');
 
     // set cache-control header
     response.set('Cache-Control', 'max-age=2592000, stale-while-revalidate=2678000, private');
 
     // send audio
-    response.sendFile(`${path}/${file}`);
+    response.sendFile(path);
 });
 
 // start server
