@@ -122,7 +122,6 @@ app.get('/icon/*', async (request, response) => {
 
     // get path
     const path = await getCoverPath(musicFilePath);
-    console.log(path || 'no cover found');
 
     // set cache-control header
     response.set('Cache-Control', 'max-age=2592000, stale-while-revalidate=2678000, private');
