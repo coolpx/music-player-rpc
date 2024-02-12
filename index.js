@@ -120,6 +120,9 @@ app.get('/icon/*', async (request, response) => {
     // get path
     let musicFilePath = [getMusicPath(), request.params[0]].join('/');
 
+    // get cover path
+    const path = await getCoverPath(musicFilePath);
+
     // check if file exists
     if (!fs.existsSync(path)) return response.status(404).send('Not found');
 
